@@ -21,14 +21,23 @@ class PowerDetector(Detector):
 
         ac_connected = bool(battery.power_plugged)
 
-        if self._last_connected is not None and ac_connected == self._last_connected:
+        if self._last_connected is None:
+            self._last_connected = ac_connected
+            return None
+
+        if ac_connected == self._last_connected:
             return None
 
         self._last_connected = ac_connected
+        seconds_remaining = battery.secsleft
+
+        if seconds_remaining in (psutil.POWER_TIME_UNLIMITED, psutil.POWER_TIME_UNKNOWN):
+            seconds_remaining = None
+
         event_name = 'ACConnected' if ac_connected else 'ACDisconnected'
         payload = {
             'ac_connected': ac_connected,
             'percent': battery.percent,
-            'secs_left': battery.secsleft,
+            'seconds_remaining': seconds_remaining,
         }
         return Event(name=event_name, source=self.name, payload=payload)

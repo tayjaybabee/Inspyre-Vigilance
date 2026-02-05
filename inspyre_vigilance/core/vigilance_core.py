@@ -10,9 +10,12 @@ class VigilanceCore:
     '''Orchestrates detectors and outputs.'''
 
     def __init__(self, detectors=None, outputs=None, tick_interval: float = 1.0):
+        '''Initialize the core, copying detector and output iterables into internal lists.'''
         self.bus = EventBus()
-        self.detectors = detectors or []
-        self.outputs = outputs or []
+        self.detectors = [] if detectors is None else list(detectors)
+        self.outputs = [] if outputs is None else list(outputs)
+        if tick_interval <= 0:
+            raise ValueError('tick_interval must be positive')
         self.tick_interval = tick_interval
         self._running = False
 
@@ -30,6 +33,10 @@ class VigilanceCore:
             detector.dispatch()
 
     def run(self, max_cycles: int | None = None):
+        '''Run the detection loop; max_cycles limits ticks, None runs until stop() or a KeyboardInterrupt.'''
+        if max_cycles is not None and max_cycles <= 0:
+            raise ValueError('max_cycles must be positive when provided')
+
         self.start()
         cycles = 0
 
