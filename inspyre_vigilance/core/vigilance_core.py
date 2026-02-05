@@ -1,18 +1,59 @@
+import time
+
+from inspyre_vigilance.detectors import PowerDetector
+from inspyre_vigilance.outputs import StdoutOutput
+
 from .event_bus import EventBus
 
+
 class VigilanceCore:
-    def __init__(self, detectors=None, outputs=None):
+    '''Orchestrates detectors and outputs.'''
+
+    def __init__(self, detectors=None, outputs=None, tick_interval: float = 1.0):
         self.bus = EventBus()
         self.detectors = detectors or []
         self.outputs = outputs or []
+        self.tick_interval = tick_interval
+        self._running = False
 
     def start(self):
         for output in self.outputs:
             self.bus.subscribe(output.handle_event)
 
+        for detector in self.detectors:
+            detector.attach_bus(self.bus)
+
+        self._running = True
+
+    def tick(self):
+        for detector in self.detectors:
+            detector.dispatch()
+
+    def run(self, max_cycles: int | None = None):
+        self.start()
+        cycles = 0
+
+        try:
+            while self._running:
+                self.tick()
+                cycles += 1
+
+                if max_cycles is not None and cycles >= max_cycles:
+                    break
+
+                time.sleep(self.tick_interval)
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self.stop()
+
     def stop(self):
-        pass
+        self._running = False
+
 
 def main():
-    core = VigilanceCore()
-    core.start()
+    '''Entry point that wires the power detector to stdout output.'''
+    power_detector = PowerDetector()
+    stdout_output = StdoutOutput()
+    core = VigilanceCore(detectors=[power_detector], outputs=[stdout_output])
+    core.run()
