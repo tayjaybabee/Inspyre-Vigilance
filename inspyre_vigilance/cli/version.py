@@ -12,7 +12,7 @@ from packaging.version import InvalidVersion, Version
 
 PACKAGE_NAME = "inspyre-vigilance"
 PYPI_JSON_URL = f"https://pypi.org/pypi/{PACKAGE_NAME}/json"
-UPDATE_ENV_VAR = "MIDIFF_CHECK_UPDATES"
+UPDATE_ENV_VAR = "INSPYRE_VIGILANCE_CHECK_UPDATES"
 
 
 def get_installed_version() -> str:

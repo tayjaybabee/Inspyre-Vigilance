@@ -26,5 +26,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "version":
         return print_version_info()
 
-    run_core()
+    exit_code = run_core()
+    if isinstance(exit_code, int):
+        return exit_code
     return 0
