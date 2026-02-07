@@ -16,7 +16,7 @@ python -m inspyre_vigilance
 - The source of truth for the version is `[project].version` in `pyproject.toml`.
 - For user-facing changes, update `CHANGELOG.md` under **[Unreleased]**.
 - Use patch bumps for fixes, minor for features, and major for breaking changes.
-- Pre-releases should use a PEP 440 dev suffix (for example, `0.3.0-dev.1`).
+- Pre-releases should use a PEP 440 dev suffix (for example, `0.3.0.dev1`).
 
 ## Release Workflow
 
