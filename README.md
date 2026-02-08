@@ -4,11 +4,11 @@ Real-time system intelligence and event correlation framework.
 
 ## Running
 
-Install dependencies and launch the default power detector to stdout:
+Install dependencies with Poetry and launch the default power detector from the Poetry environment:
 
 ```bash
-pip install -e .
-python -m inspyre_vigilance
+poetry install
+poetry run python -m inspyre_vigilance
 ```
 
 ## Versioning & Changelog
