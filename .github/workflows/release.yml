@@ -64,17 +64,57 @@ jobs:
               handle.write(f"changed={changed}\n")
           PY
 
+      - name: Validate changelog updated
+        if: steps.version.outputs.changed == 'true'
+        run: |
+          python - <<'PY'
+          import os
+          import subprocess
+          import sys
+          
+          before = os.environ.get("BEFORE_SHA", "")
+          after = os.environ["AFTER_SHA"]
+          
+          # Handle edge case: no before SHA (initial commit or empty repository)
+          if not before or before == "0000000000000000000000000000000000000000":
+              print("Skipping changelog check: no previous commit to compare against")
+              sys.exit(0)
+          
+          try:
+              result = subprocess.run(
+                  ["git", "diff", "--name-only", before, after],
+                  capture_output=True,
+                  text=True,
+                  check=True,
+              )
+              changed_files = result.stdout.strip().split("\n")
+              if "CHANGELOG.md" not in changed_files:
+                  print("::error::Version changed but CHANGELOG.md was not updated")
+                  sys.exit(1)
+          except subprocess.CalledProcessError as e:
+              print(f"::error::Failed to check changed files: {e}")
+              sys.exit(1)
+          PY
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+
       - name: Detect pre-release
         id: prerelease
         if: steps.version.outputs.changed == 'true'
         run: |
           python - <<'PY'
           import os
-          import re
+          import sys
+          from packaging.version import InvalidVersion, Version
           
           version = os.environ["VERSION"]
-          pattern = re.compile(r"(a|b|rc|alpha|beta|dev)\d*", re.IGNORECASE)
-          is_prerelease = "true" if pattern.search(version) else "false"
+          try:
+              parsed = Version(version)
+              is_prerelease = "true" if (parsed.is_prerelease or parsed.is_devrelease) else "false"
+          except InvalidVersion as e:
+              print(f"::error::Invalid PEP 440 version '{version}': {e}")
+              sys.exit(1)
           
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
               handle.write(f"prerelease={is_prerelease}\n")
