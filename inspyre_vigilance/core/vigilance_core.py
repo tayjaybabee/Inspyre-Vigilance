@@ -1,7 +1,7 @@
 import time
 
 from inspyre_vigilance.detectors import PowerDetector
-from inspyre_vigilance.outputs import StdoutOutput
+from inspyre_vigilance.outputs import PowerDisplayAdapter, StdoutOutput
 
 from .event_bus import EventBus
 
@@ -62,5 +62,6 @@ def main():
     '''Entry point that wires the power detector to stdout output.'''
     power_detector = PowerDetector()
     stdout_output = StdoutOutput()
-    core = VigilanceCore(detectors=[power_detector], outputs=[stdout_output])
+    display_adapter = PowerDisplayAdapter()
+    core = VigilanceCore(detectors=[power_detector], outputs=[stdout_output, display_adapter])
     core.run()
