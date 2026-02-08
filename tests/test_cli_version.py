@@ -133,8 +133,23 @@ class TestPrintVersionInfo(unittest.TestCase):
         with patch("inspyre_vigilance.cli.version.fetch_latest_version") as mock_fetch:
             mock_fetch.return_value = ("2.0.0", None)
             exit_code = version_module.print_version_info(check_updates=None)
+
+            # Exit code should still be success
             self.assertEqual(exit_code, 0)
+
+            # Env var should be consulted
             mock_getenv.assert_called_once_with("INSPYRE_VIGILANCE_CHECK_UPDATES")
+
+            # Env var enabling updates should cause a fetch of the latest version
+            mock_fetch.assert_called_once()
+
+            # And an update message mentioning the latest version should be printed
+            printed_text = "".join(
+                str(arg)
+                for call_args, _ in mock_print.call_args_list
+                for arg in call_args
+            )
+            self.assertIn("2.0.0", printed_text)
 
 
 if __name__ == "__main__":
