@@ -36,4 +36,4 @@ jobs:
         run: poetry install --no-interaction
 
       - name: Run tests via Poetry
-        run: poetry run pytest
+        run: poetry run python -m unittest
