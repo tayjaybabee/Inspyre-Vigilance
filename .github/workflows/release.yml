@@ -141,8 +141,12 @@ jobs:
 
       - name: Publish to Test PyPI
         if: steps.version.outputs.changed == 'true' && steps.prerelease.outputs.prerelease == 'true'
-        run: poetry publish -r testpypi --username __token__ --password ${{ secrets.TEST_PYPI_TOKEN }}
+        run: poetry publish -r testpypi --username __token__
+        env:
+          POETRY_PYPI_TOKEN_TESTPYPI: ${{ secrets.TEST_PYPI_TOKEN }}
 
       - name: Publish to PyPI
         if: steps.version.outputs.changed == 'true' && steps.prerelease.outputs.prerelease != 'true'
-        run: poetry publish --username __token__ --password ${{ secrets.PYPI_TOKEN }}
+        run: poetry publish --username __token__
+        env:
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
