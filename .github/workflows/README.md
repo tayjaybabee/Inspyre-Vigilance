@@ -24,3 +24,9 @@ The workflow requires:
 2. Update `CHANGELOG.md` under the **[Unreleased]** section with user-facing changes.
 3. Merge or push the change to the default branch.
 4. The workflow builds with Poetry, creates a GitHub Release, and uploads `dist/*` artifacts.
+
+## CI Workflow
+
+- Runs on pushes and pull requests across Ubuntu, macOS, and Windows runners.
+- Installs Poetry (pinned to a stable version), installs the project with `poetry install --with dev`, and executes tests with `poetry run pytest` inside the Poetry environment.
+- Caches Poetry artifacts keyed to `poetry.lock` to speed up installs across runs.

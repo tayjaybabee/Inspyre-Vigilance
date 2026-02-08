@@ -13,6 +13,9 @@ dependencies = [
     "rich",
 ]
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^9.0.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
