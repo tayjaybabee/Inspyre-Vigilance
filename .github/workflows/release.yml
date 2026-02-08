@@ -1,0 +1,152 @@
+name: Release
+
+on:
+  push:
+    paths:
+      - "pyproject.toml"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: ${{ github.ref_name == github.event.repository.default_branch }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+
+      - name: Read version
+        id: version
+        run: |
+          python - <<'PY'
+          import os
+          import subprocess
+          import sys
+          import tomllib
+          
+          def read_version(content: str) -> str:
+              data = tomllib.loads(content)
+              version = data.get("project", {}).get("version")
+              if not version:
+                  print("::error::Missing [project].version in pyproject.toml")
+                  sys.exit(1)
+              return version
+          
+          with open("pyproject.toml", "rb") as handle:
+              current = read_version(handle.read().decode())
+          
+          try:
+              previous_content = subprocess.check_output(
+                  ["git", "show", "HEAD^:pyproject.toml"],
+                  text=True,
+              )
+              previous = read_version(previous_content)
+          except subprocess.CalledProcessError:
+              previous = ""
+          
+          changed = "true" if current != previous else "false"
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
+              handle.write(f"current={current}\n")
+              handle.write(f"previous={previous}\n")
+              handle.write(f"changed={changed}\n")
+          PY
+
+      - name: Validate changelog updated
+        if: steps.version.outputs.changed == 'true'
+        run: |
+          python - <<'PY'
+          import os
+          import subprocess
+          import sys
+          
+          before = os.environ.get("BEFORE_SHA", "")
+          after = os.environ["AFTER_SHA"]
+          
+          # Handle edge case: no before SHA (initial commit or empty repository)
+          if not before or before == "0000000000000000000000000000000000000000":
+              print("Skipping changelog check: no previous commit to compare against")
+              sys.exit(0)
+          
+          try:
+              result = subprocess.run(
+                  ["git", "diff", "--name-only", before, after],
+                  capture_output=True,
+                  text=True,
+                  check=True,
+              )
+              changed_files = result.stdout.strip().split("\n")
+              if "CHANGELOG.md" not in changed_files:
+                  print("::error::Version changed but CHANGELOG.md was not updated")
+                  sys.exit(1)
+          except subprocess.CalledProcessError as e:
+              print(f"::error::Failed to check changed files: {e}")
+              sys.exit(1)
+          PY
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+
+      - name: Detect pre-release
+        id: prerelease
+        if: steps.version.outputs.changed == 'true'
+        run: |
+          python - <<'PY'
+          import os
+          import sys
+          from packaging.version import InvalidVersion, Version
+          
+          version = os.environ["VERSION"]
+          try:
+              parsed = Version(version)
+              is_prerelease = "true" if (parsed.is_prerelease or parsed.is_devrelease) else "false"
+          except InvalidVersion as e:
+              print(f"::error::Invalid PEP 440 version '{version}': {e}")
+              sys.exit(1)
+          
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
+              handle.write(f"prerelease={is_prerelease}\n")
+          PY
+        env:
+          VERSION: ${{ steps.version.outputs.current }}
+
+      - name: Build package
+        if: steps.version.outputs.changed == 'true'
+        run: poetry build
+
+      - name: Create GitHub Release
+        if: steps.version.outputs.changed == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.current }}
+          name: v${{ steps.version.outputs.current }}
+          prerelease: ${{ steps.prerelease.outputs.prerelease == 'true' }}
+          files: dist/*
+
+      - name: Configure Test PyPI
+        if: steps.version.outputs.changed == 'true' && steps.prerelease.outputs.prerelease == 'true'
+        run: poetry config repositories.testpypi https://test.pypi.org/legacy/
+
+      - name: Publish to Test PyPI
+        if: steps.version.outputs.changed == 'true' && steps.prerelease.outputs.prerelease == 'true'
+        run: poetry publish -r testpypi --username __token__
+        env:
+          POETRY_PYPI_TOKEN_TESTPYPI: ${{ secrets.TEST_PYPI_TOKEN }}
+
+      - name: Publish to PyPI
+        if: steps.version.outputs.changed == 'true' && steps.prerelease.outputs.prerelease != 'true'
+        run: poetry publish --username __token__
+        env:
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
