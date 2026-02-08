@@ -28,4 +28,5 @@ The workflow requires:
 ## CI Workflow
 
 - Runs on pushes and pull requests across Ubuntu, macOS, and Windows runners.
-- Installs Poetry, installs the project with `poetry install`, and executes tests with `poetry run pytest` inside the Poetry environment.
+- Installs Poetry (pinned to a stable version), installs the project with `poetry install`, and executes tests with `poetry run pytest` inside the Poetry environment.
+- Caches Poetry artifacts keyed to `poetry.lock` to speed up installs across runs.
