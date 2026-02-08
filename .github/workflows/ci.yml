@@ -42,10 +42,7 @@ jobs:
             poetry-${{ runner.os }}-${{ matrix.python-version }}-
 
       - name: Install dependencies with Poetry
-        run: poetry install --no-interaction
-
-      - name: Install test tools
-        run: poetry run python -m pip install pytest
+        run: poetry install --no-interaction --with dev
 
       - name: Run tests via Poetry
         run: poetry run pytest
