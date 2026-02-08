@@ -7,4 +7,4 @@ class Event:
     source: str
     payload: dict = field(default_factory=dict)
     confidence: float = 1.0
-    timestamp: float = field(default_factory=time.time)
+    timestamp: float = field(default_factory=time.monotonic)

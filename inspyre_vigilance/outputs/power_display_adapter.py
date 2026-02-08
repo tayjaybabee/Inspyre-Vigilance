@@ -36,7 +36,7 @@ class PowerDisplayAdapter:
         if not isinstance(event, PowerEvent):
             return []
 
-        payload = event.state.to_payload()
+        payload = dict(event.state.to_payload())
         payload["event"] = event.name
 
         if isinstance(event, PowerACConnected):
