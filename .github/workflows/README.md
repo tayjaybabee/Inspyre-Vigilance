@@ -25,7 +25,7 @@ The workflow requires:
 3. Merge or push the change to the default branch.
 4. The workflow builds with Poetry, creates a GitHub Release, and uploads `dist/*` artifacts.
 
-# CI Workflow
+## CI Workflow
 
 - Runs on pushes and pull requests across Ubuntu, macOS, and Windows runners.
 - Installs Poetry, installs the project with `poetry install`, and executes tests with `poetry run pytest` inside the Poetry environment.
