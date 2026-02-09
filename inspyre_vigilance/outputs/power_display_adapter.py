@@ -20,8 +20,33 @@ class PowerDisplayAdapter:
     def __init__(self, emit_intent: Callable[[DisplayIntent], None] | None = None):
         self.emit_intent = emit_intent or (lambda intent: print(intent, flush=True))
         self._last_intent: DisplayIntent | None = None
+        self._active_severity: Severity | None = None
 
-    def _emit_if_new(self, intent: DisplayIntent):
+    def _should_emit(self, intent: DisplayIntent, event: PowerEvent) -> bool:
+        if isinstance(event, (PowerACConnected, BatteryRecovered)):
+            self._active_severity = Severity.INFO
+            return True
+
+        if intent.severity == Severity.CRITICAL:
+            self._active_severity = Severity.CRITICAL
+            return True
+
+        if self._active_severity == Severity.CRITICAL:
+            return False
+
+        if intent.severity == Severity.WARNING:
+            self._active_severity = Severity.WARNING
+            return True
+
+        if intent.severity == Severity.INFO and self._active_severity == Severity.WARNING:
+            return False
+
+        self._active_severity = intent.severity
+        return True
+
+    def _emit_if_new(self, intent: DisplayIntent, event: PowerEvent):
+        if not self._should_emit(intent, event):
+            return
         if self._last_intent == intent:
             return
         self._last_intent = intent
@@ -30,7 +55,7 @@ class PowerDisplayAdapter:
     def handle_event(self, event):
         intents = list(self.translate(event))
         for intent in intents:
-            self._emit_if_new(intent)
+            self._emit_if_new(intent, event)
 
     def translate(self, event) -> Iterable[DisplayIntent]:
         if not isinstance(event, PowerEvent):
