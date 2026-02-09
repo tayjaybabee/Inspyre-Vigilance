@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Documented the release workflow, versioning policy, and changelog expectations.
 - Added a release workflow that builds with Poetry, tags GitHub Releases, and publishes to PyPI/Test PyPI.
+- Added usage examples for the power display adapter and priority behavior.
 
 ### Changed
 - Added a CLI `version` command with optional PyPI update checks controlled by `INSPYRE_VIGILANCE_CHECK_UPDATES`.
