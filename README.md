@@ -35,7 +35,14 @@ adapter = PowerDisplayAdapter(emit_intent=handle_intent)
 bus.subscribe(adapter.handle_event)
 detector.attach_bus(bus)
 
-detector.dispatch()
+# First dispatch seeds the detector state; subsequent polls emit transitions.
+detector.dispatch()  # warm-up (no events emitted)
+
+# Poll periodically to detect and emit power state changes:
+import time
+for _ in range(3):
+    time.sleep(2)
+    detector.dispatch()
 ```
 
 ### Prioritize critical power alerts
