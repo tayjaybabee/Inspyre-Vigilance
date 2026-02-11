@@ -61,12 +61,12 @@ def test_power_display_adapter_translates_and_debounces():
     adapter._last_intent = None
     reconnect_state = PowerState(True, 20, None, True, PowerSource.AC)
     info_reconnect = PowerACConnected(source="test", state=reconnect_state)
-    
+
     initial_count = len(emitted)
     adapter.handle_event(info_reconnect)
     assert len(emitted) == initial_count + 1  # PowerACConnected emits even during WARNING (recovery event)
     assert emitted[-1].severity == Severity.INFO
-    
+
     # Test BatteryRecovered clears suppression
     adapter._active_severity = Severity.CRITICAL  # Set to CRITICAL
     recovered_state = PowerState(True, 60, None, True, PowerSource.AC)
