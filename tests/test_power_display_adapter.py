@@ -1,6 +1,7 @@
 from inspyre_vigilance.events.power import (
     BatteryCritical,
     BatteryLevelCrossed,
+    BatteryRecovered,
     PowerACConnected,
     PowerACDisconnected,
     PowerSource,
@@ -44,8 +45,8 @@ def test_power_display_adapter_translates_and_debounces():
 
     crossed_event = BatteryLevelCrossed(
         source="test",
-        state=PowerState(False, 4, 90, False, PowerSource.BATTERY),
-        previous_state=critical_event.state,
+        state=PowerState(False, 9, 90, False, PowerSource.BATTERY),
+        previous_state=PowerState(False, 11, 95, False, PowerSource.BATTERY),
         threshold=10,
     )
     adapter.handle_event(crossed_event)
@@ -54,6 +55,49 @@ def test_power_display_adapter_translates_and_debounces():
     adapter.handle_event(critical_event)
     assert len(emitted) == 3  # deduped
 
+    # Test INFO suppression during WARNING
+    warning_state = PowerState(False, 15, 200, False, PowerSource.BATTERY)
+    warning_disconnected = PowerACDisconnected(
+        source="test",
+        state=warning_state,
+        previous_state=connected_state,
+    )
+    adapter._active_severity = Severity.WARNING  # Set WARNING as active
+    low_battery_crossed = BatteryLevelCrossed(
+        source="test",
+        state=PowerState(False, 19, 180, False, PowerSource.BATTERY),
+        previous_state=PowerState(False, 21, 190, False, PowerSource.BATTERY),
+        threshold=20,
+    )
+    # This would normally emit WARNING, but we'll test with AC reconnect (INFO)
+    reconnect_state = PowerState(True, 20, None, True, PowerSource.AC)
+    info_reconnect = PowerACConnected(source="test", state=reconnect_state)
+    
+    # Reset to WARNING state first
+    adapter._active_severity = Severity.WARNING
+    adapter._last_intent = None
+    
+    # When WARNING is active, new INFO intents from non-recovery events should be suppressed
+    # But PowerACConnected is a recovery event, so it should emit
+    initial_count = len(emitted)
+    adapter.handle_event(info_reconnect)
+    assert len(emitted) == initial_count + 1  # PowerACConnected emits even during WARNING (recovery event)
+    assert emitted[-1].severity == Severity.INFO
+    
+    # Test BatteryRecovered clears suppression
+    adapter._active_severity = Severity.CRITICAL  # Set to CRITICAL
+    recovered_state = PowerState(True, 60, None, True, PowerSource.AC)
+    recovered_event = BatteryRecovered(
+        source="test",
+        state=recovered_state,
+        previous_state=critical_event.state,
+    )
+    initial_count = len(emitted)
+    adapter.handle_event(recovered_event)
+    assert len(emitted) == initial_count + 1  # BatteryRecovered emits and clears suppression
+    assert emitted[-1].severity == Severity.INFO
+    assert adapter._active_severity == Severity.INFO  # Suppression cleared
+
     adapter.handle_event(connected)
-    assert len(emitted) == 4
+    assert len(emitted) == initial_count + 2
     assert emitted[-1].severity == Severity.INFO
