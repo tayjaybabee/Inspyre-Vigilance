@@ -16,7 +16,7 @@ dependencies = [
 [project.scripts]
 inspyre-vigilance = "inspyre_vigilance.cli.main:main"
 [tool.poetry.group.dev.dependencies]
-pytest = "^9.0.0"
+pytest = "^9.0.3"
 
 [build-system]
 requires = ["poetry-core"]
